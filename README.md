@@ -1,6 +1,5 @@
 # predicting-workout-quality-using-ML
 
-This repository is created as part of the practical machine learning course offered by John Hopkins university @ Coursera.
 ## Introduction
 
 Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount
@@ -10,6 +9,8 @@ health, to ﬁnd patterns in their behavior, or because they are tech geeks. One
 do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In
 this project, the goal will be to use data from accelerometers on the belt, forearm, arm, and dumbell of 6
 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 diﬀerent ways.
+
+This repository is created as part of the practical machine learning course offered by John Hopkins university @ Coursera.
 
 ## Objective
 
