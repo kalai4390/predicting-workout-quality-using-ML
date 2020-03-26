@@ -1,0 +1,182 @@
+---
+title: "predicting the quality of exercise"
+author: "kalai"
+date: "3/26/2020"
+output:
+  pdf_document: default
+  html_document: default
+---
+## Introduction
+
+Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement – a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, the goal will be to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. 
+
+## Objective
+
+The objective is to correclty predict whether the participants have performed the exercise correctly or not based on the parameters provided in the dataset.
+
+More information on the experiment is available here: http://groupware.les.inf.puc-rio.br/har 
+The training data for this project are available at:
+
+https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv
+
+The test data are available here:
+
+https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv
+
+The data for this project come from this source: http://groupware.les.inf.puc-rio.br/har. 
+
+##Getting and Cleaning Data
+
+
+
+```{r}
+trainURL <- "http://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"
+testURL <- "http://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv"
+
+training <- read.csv(url(trainURL))
+testing <- read.csv(url(testURL))
+```
+
+Let's explore the dataset
+
+```{r}
+dim(training)
+dim(testing)
+```
+There are 19622 observations in training set with 160 parameters for each observation
+For the test test there are 20 observations with 160 parameters
+
+Let's look at the data
+```{r}
+head(training)
+head(testing)
+```
+
+The classe is the outcome to predict in the test data
+
+First, remove the variables with NaN values and values which have lesser significance.
+
+```{r}
+library(caret)
+clean <- nearZeroVar(training, saveMetrics = TRUE)
+head(clean)
+```
+```{r}
+train <- training[, !clean$nzv]
+test <- testing[, !clean$nzv]
+dim(train)
+dim(test)
+```
+```{r}
+head(train)
+```
+
+Now there are 100 parameters for the observations in training and test set. Further removing the parameters that are not needed for the prediction
+```{r}
+rem <- grepl("^X|timestamp|user_name", names(train))
+train <- train[, !rem]
+test <- test[, !rem]
+dim(train)
+dim(test)
+
+```
+```{r}
+head(train)
+```
+Finally let's remove the na values
+
+```{r}
+n <- (colSums(is.na(train)) == 0)
+train <- train[, n]
+testing <- test[, n]
+dim(train)
+
+```
+Finally, there are 54 parameters in the training set with which  we can proceed for prediction
+
+Importing the required packages
+```{r}
+library(rpart)
+library(rpart.plot)
+library(corrplot)
+library(randomForest)
+```
+
+Setting the seed value for regeneration of same results
+
+```{r}
+set.seed(12345)
+```
+
+Visualizing a correlation plot
+
+```{r}
+corrplot(cor(train[, -length(names(train))]), method = "color", tl.cex = 0.6)
+```
+
+## Dataset partitioning
+
+let's partition the training set into train and test to be useful for cross validation
+
+```{r}
+set.seed(12345)
+Train_part <- createDataPartition(train$classe, p = 0.70, list = FALSE)
+validate <- train[-Train_part, ]
+final_train <- train[Train_part, ]
+dim(validate)
+dim(final_train)
+
+```
+
+## Using Random Forest
+
+Here, I have used random forest for training and prediction. the cross fold validation value is set to 10.
+
+```{r}
+ranfor <- train(classe ~ ., data = final_train, method = "rf", trControl = trainControl(method = "cv", 10), ntree = 100)
+ranfor
+```
+
+Let's check the performance of the model on the validation state
+
+```{r}
+predictranfor <- predict(ranfor, validate)
+confusionMatrix(validate$classe, predictranfor)
+```
+
+```{r}
+accuracy <- postResample(predictranfor, validate$classe)
+outsamplerr <- 1 - as.numeric(confusionMatrix(validate$classe, predictranfor)$overall[1])
+accuracy
+outsamplerr
+``` 
+
+## Fitting a decision tree
+
+Let's try a decision tree on the dataset
+
+```{r}
+dtree <- rpart(classe ~ ., data = final_train, method = "class")
+predictdtree <- predict(dtree, validate, type = "class")
+confusionMatrix(validate$classe, predictdtree)
+```
+
+```{r}
+dtreeaccuracy <- postResample(predictdtree, validate$classe)
+dtreeoutsamplerr <- 1 - as.numeric(confusionMatrix(validate$classe, predictdtree)$overall[1])
+dtreeaccuracy
+dtreeoutsamplerr
+
+```
+It can be seen that random forset has higher accuracy when compared to decision tree. 
+Hence let's use random forest to measure the performance on the test set.
+
+## Predcition on the test set
+
+```{r}
+predict(ranfor, testing[, -length(names(testing))])
+```
+
+## Conclusion
+
+We can see the predcitions for the test data set 
